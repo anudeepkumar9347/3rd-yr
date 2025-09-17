@@ -1,0 +1,25 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run backend (uvicorn)",
+			"type": "shell",
+			"command": "\"/home/anudeep/Downloads/3rd yr/.venv/bin/python\" -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload",
+			"isBackground": true,
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Run backend (uvicorn)",
+			"type": "shell",
+			"command": "\"/home/anudeep/Downloads/3rd yr/.venv/bin/python\" -m uvicorn backend.app:app --host 0.0.0.0 --port 8000 --reload",
+			"isBackground": true,
+			"problemMatcher": [
+				"$eslint-stylish"
+			],
+			"group": "build"
+		}
+	]
+}

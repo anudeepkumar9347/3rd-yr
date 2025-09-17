@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Voice PD Detector</title>
+  <style>
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
+    .card { max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; }
+    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
+    input, button { font: inherit; }
+    .row { display: flex; align-items: center; gap: .5rem; }
+    .row > * { flex: 1; }
+    .result { margin-top: 1rem; white-space: pre-wrap; background: #fafafa; padding: .75rem; border-radius: 6px; border: 1px solid #eee; }
+    small { color: #666; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Voice PD Detector</h1>
+    <p><small>Upload a short WAV (mono/stereo, 16-bit preferred). This is a demo heuristic, not medical advice.</small></p>
+    <div class="row">
+      <input id="file" type="file" accept="audio/wav" />
+      <button id="send">Analyze</button>
+    </div>
+    <div class="result" id="out">Result will appear here.</div>
+  </div>
+
+  <script>
+    const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+      ? 'http://127.0.0.1:8000/predict'
+      : 'http://127.0.0.1:8000/predict'; // adjust if hosting elsewhere
+
+    const $ = (id) => document.getElementById(id);
+
+    $('send').addEventListener('click', async () => {
+      const f = $('file').files[0];
+      if (!f) {
+        $('out').textContent = 'Please choose a WAV file.';
+        return;
+      }
+      const form = new FormData();
+      form.append('file', f);
+      $('out').textContent = 'Analyzing...';
+      try {
+        const res = await fetch(backendUrl, { method: 'POST', body: form });
+        const txt = await res.text();
+        try {
+          const j = JSON.parse(txt);
+          $('out').textContent = `Label: ${j.label}\nScore: ${j.score}\nFeatures: ${JSON.stringify(j.features, null, 2)}`;
+        } catch (e) {
+          $('out').textContent = txt;
+        }
+      } catch (err) {
+        $('out').textContent = 'Error: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>
