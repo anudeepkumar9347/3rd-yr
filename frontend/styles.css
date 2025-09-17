@@ -1,0 +1,64 @@
+/* Core layout */
+:root {
+  --bg: #0f1115;
+  --bg-alt: #161a21;
+  --panel: #1f2530;
+  --panel-alt: #252d3a;
+  --border: #2f3744;
+  --radius: 14px;
+  --focus: 218 100% 60%;
+  --grad-start: #3b82f6;
+  --grad-end: #8b5cf6;
+  --text: #e5ecf5;
+  --text-dim: #94a3b8;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --ok: #10b981;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;
+}
+
+* { box-sizing: border-box; }
+html,body { height:100%; }
+body { margin:0; background: radial-gradient(circle at 20% 20%, #1b2230, #0d1218 70%); color: var(--text); -webkit-font-smoothing: antialiased; }
+
+main { max-width: 960px; margin: 0 auto; padding: clamp(1.2rem, 2.5vw, 3rem); }
+
+header { display:flex; flex-wrap:wrap; gap:1rem; align-items:center; justify-content:space-between; margin-bottom:2rem; }
+header h1 { font-size: clamp(1.4rem, 1.8rem + 1vw, 2.4rem); background: linear-gradient(90deg,var(--grad-start),var(--grad-end)); -webkit-background-clip:text; background-clip:text; color:transparent; margin:0; letter-spacing:.5px; }
+.subtitle { font-size:.9rem; color:var(--text-dim); max-width:560px; line-height:1.4; }
+
+/* Upload panel */
+.panel { background: linear-gradient(140deg, var(--panel), var(--panel-alt)); border:1px solid var(--border); border-radius: var(--radius); padding:1.5rem clamp(1.2rem,2vw,2rem); box-shadow: 0 4px 20px -4px rgba(0,0,0,.4); position:relative; overflow:hidden; }
+.panel:before { content:""; position:absolute; inset:0; background:radial-gradient(circle at 85% 15%,rgba(255,255,255,.07),transparent 70%); pointer-events:none; }
+
+.grid { display:grid; gap:1.5rem; }
+
+.drop-zone { border:2px dashed #3b4657; border-radius: var(--radius); padding:2rem 1.25rem; text-align:center; cursor:pointer; background:rgba(255,255,255,0.02); transition:.25s border-color,.25s background,.25s transform; position:relative; }
+.drop-zone:hover { background:rgba(255,255,255,0.04); }
+.drop-zone.dragover { border-color: var(--grad-start); background: rgba(59,130,246,0.06); transform: translateY(-2px); }
+.drop-zone input { display:none; }
+.drop-zone .hint { font-size:.8rem; color: var(--text-dim); margin-top:.75rem; }
+.drop-zone .cta { font-size: .95rem; font-weight:500; color:var(--text); }
+
+.actions { display:flex; flex-wrap:wrap; gap:.75rem; align-items:center; }
+button { --btn-bg: linear-gradient(90deg,var(--grad-start),var(--grad-end)); --btn-shadow: 0 4px 14px -2px rgba(0,0,0,.5); border:none; padding:.85rem 1.2rem; font-size:.9rem; font-weight:600; letter-spacing:.4px; border-radius: 40px; cursor:pointer; color:#fff; background: var(--btn-bg); box-shadow: var(--btn-shadow); display:inline-flex; gap:.5rem; align-items:center; position:relative; transition:.25s box-shadow,.25s transform; }
+button:hover { box-shadow:0 6px 18px -3px rgba(0,0,0,.6); }
+button:active { transform:translateY(1px); }
+button.secondary { background: #334155; }
+button.secondary:hover { background:#3d4c63; }
+
+#result { background: #11161d; border:1px solid var(--border); border-radius: var(--radius); padding:1.1rem 1.25rem; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size:.8rem; line-height:1.4; white-space:pre-wrap; overflow-wrap:anywhere; min-height:130px; position:relative; }
+#result.loading:after { content:"Analyzing..."; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(15,17,21,.82); backdrop-filter:blur(3px); font-weight:600; letter-spacing:.5px; }
+
+.badge { display:inline-block; padding:.35rem .7rem; border-radius: 999px; font-size:.65rem; letter-spacing:.5px; font-weight:600; text-transform:uppercase; background:#334155; color:var(--text-dim); margin-right:.4rem; }
+.badge.ok { background: var(--ok); color:#042e19; }
+.badge.warn { background: var(--warn); color:#3a2500; }
+.badge.danger { background: var(--danger); color:#330202; }
+
+footer { margin-top:3rem; text-align:center; font-size:.7rem; color:var(--text-dim); padding:2rem 0 3rem; }
+
+/* Responsive */
+@media (max-width:700px){
+  .actions { flex-direction:column; align-items:stretch; }
+  button, .drop-zone { width:100%; }
+}

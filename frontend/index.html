@@ -1,60 +1,132 @@
 <!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Voice PD Detector</title>
-  <style>
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; margin: 2rem; }
-    .card { max-width: 600px; margin: auto; border: 1px solid #ddd; border-radius: 8px; padding: 1rem 1.25rem; }
-    h1 { font-size: 1.25rem; margin: 0 0 1rem; }
-    input, button { font: inherit; }
-    .row { display: flex; align-items: center; gap: .5rem; }
-    .row > * { flex: 1; }
-    .result { margin-top: 1rem; white-space: pre-wrap; background: #fafafa; padding: .75rem; border-radius: 6px; border: 1px solid #eee; }
-    small { color: #666; }
-  </style>
-</head>
-<body>
-  <div class="card">
-    <h1>Voice PD Detector</h1>
-    <p><small>Upload a short WAV (mono/stereo, 16-bit preferred). This is a demo heuristic, not medical advice.</small></p>
-    <div class="row">
-      <input id="file" type="file" accept="audio/wav" />
-      <button id="send">Analyze</button>
-    </div>
-    <div class="result" id="out">Result will appear here.</div>
-  </div>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Voice PD Detector</title>
+    <link rel="stylesheet" href="styles.css" />
+    <meta name="description" content="Minimal heuristic Parkinson's voice pattern demo" />
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Voice PD Detector</h1>
+        <p class="subtitle">Upload (or drag & drop) a short WAV clip (speech). A simple heuristic extracts basic signal features and gives a rough label. Not a medical tool.</p>
+      </header>
 
-  <script>
-    const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
-      ? 'http://127.0.0.1:8000/predict'
-      : 'http://127.0.0.1:8000/predict'; // adjust if hosting elsewhere
+      <section class="panel grid" aria-label="Upload section">
+        <div class="drop-zone" id="drop">
+          <input id="file" type="file" accept="audio/wav" aria-label="WAV file input" />
+          <div class="cta">Drop WAV file here or click to choose</div>
+          <div class="hint">16-bit PCM mono/stereo recommended. Short samples (&lt;10s) work best.</div>
+        </div>
+        <div class="actions">
+          <button id="analyze" disabled>Analyze</button>
+          <button id="reset" class="secondary" disabled>Reset</button>
+          <div class="badge" id="status">Idle</div>
+        </div>
+        <div id="result" aria-live="polite" aria-atomic="true">Waiting for audio...</div>
+      </section>
 
-    const $ = (id) => document.getElementById(id);
+      <footer>
+        Demo only • No medical decisions • Backend: FastAPI heuristic
+      </footer>
+    </main>
 
-    $('send').addEventListener('click', async () => {
-      const f = $('file').files[0];
-      if (!f) {
-        $('out').textContent = 'Please choose a WAV file.';
-        return;
+    <script>
+      const backendUrl = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+        ? 'http://127.0.0.1:8000/predict'
+        : 'http://127.0.0.1:8000/predict'; // Adjust if deployed elsewhere
+
+      const el = (id) => document.getElementById(id);
+      const fileInput = el('file');
+      const drop = el('drop');
+      const analyzeBtn = el('analyze');
+      const resetBtn = el('reset');
+      const resultBox = el('result');
+      const statusBadge = el('status');
+
+      let currentFile = null;
+
+      function setStatus(text, cls) {
+        statusBadge.textContent = text;
+        statusBadge.className = 'badge' + (cls ? ' ' + cls : '');
       }
-      const form = new FormData();
-      form.append('file', f);
-      $('out').textContent = 'Analyzing...';
-      try {
-        const res = await fetch(backendUrl, { method: 'POST', body: form });
-        const txt = await res.text();
-        try {
-          const j = JSON.parse(txt);
-          $('out').textContent = `Label: ${j.label}\nScore: ${j.score}\nFeatures: ${JSON.stringify(j.features, null, 2)}`;
-        } catch (e) {
-          $('out').textContent = txt;
+
+      function humanizeFeatures(f) {
+        const lines = [
+          `RMS: ${f.rms.toFixed(4)}`,
+          `Zero-Crossing Rate: ${f.zcr.toFixed(4)}`,
+          `Pitch Variance: ${f.pitch_var.toFixed(2)}`,
+        ];
+        return lines.join('\n');
+      }
+
+      function renderResult(data) {
+        const labelClass = data.label.includes('possible') ? (data.score > 0.75 ? 'danger' : 'warn') : 'ok';
+        resultBox.innerHTML = '' +
+          `<div class="badge ${labelClass}">${data.label}</div>` +
+          `Score: ${(data.score * 100).toFixed(1)}%\n` +
+          `\nFeatures:\n${humanizeFeatures(data.features)}`;
+      }
+
+      function resetAll() {
+        currentFile = null;
+        fileInput.value = '';
+        resultBox.textContent = 'Waiting for audio...';
+        analyzeBtn.disabled = true;
+        resetBtn.disabled = true;
+        setStatus('Idle');
+      }
+
+      resetBtn.addEventListener('click', resetAll);
+
+      function acceptFile(f) {
+        if (!f) return;
+        if (!f.name.toLowerCase().endsWith('.wav')) {
+          resultBox.textContent = 'Please select a .wav file.';
+          setStatus('Invalid','danger');
+          return;
         }
-      } catch (err) {
-        $('out').textContent = 'Error: ' + err;
+        currentFile = f;
+        resultBox.textContent = `Selected: ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+        analyzeBtn.disabled = false;
+        resetBtn.disabled = false;
+        setStatus('Ready','ok');
       }
-    });
-  </script>
-</body>
+
+      fileInput.addEventListener('change', (e) => acceptFile(e.target.files[0]));
+
+      ;['dragenter','dragover'].forEach(evt => {
+        drop.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover'); });
+      });
+      ;['dragleave','drop'].forEach(evt => {
+        drop.addEventListener(evt, (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover'); });
+      });
+      drop.addEventListener('drop', (e) => { const f = e.dataTransfer.files[0]; acceptFile(f); });
+      drop.addEventListener('click', () => fileInput.click());
+
+      analyzeBtn.addEventListener('click', async () => {
+        if (!currentFile) return;
+        const form = new FormData();
+        form.append('file', currentFile);
+        resultBox.classList.add('loading');
+        setStatus('Processing','warn');
+        try {
+          const res = await fetch(backendUrl, { method: 'POST', body: form });
+          const data = await res.json();
+          renderResult(data);
+          setStatus('Done', data.label.includes('possible') ? 'warn' : 'ok');
+        } catch (err) {
+          resultBox.textContent = 'Error: ' + err;
+          setStatus('Error','danger');
+        } finally {
+          resultBox.classList.remove('loading');
+        }
+      });
+
+      // Initialize
+      resetAll();
+    </script>
+  </body>
 </html>
