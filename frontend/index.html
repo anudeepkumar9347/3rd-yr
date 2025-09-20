@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Voice PD Detector</title>
     <link rel="stylesheet" href="styles.css" />
+<<<<<<< HEAD
+=======
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%23005588'/%3E%3Ctext x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3EVD%3C/text%3E%3C/svg%3E" />
+>>>>>>> f6f89c0 (chore: initial commit)
     <meta name="description" content="Minimal heuristic Parkinson's voice pattern demo" />
   </head>
   <body>
@@ -16,9 +20,15 @@
 
       <section class="panel grid" aria-label="Upload section">
         <div class="drop-zone" id="drop">
+<<<<<<< HEAD
           <input id="file" type="file" accept="audio/wav" aria-label="WAV file input" />
           <div class="cta">Drop WAV file here or click to choose</div>
           <div class="hint">16-bit PCM mono/stereo recommended. Short samples (&lt;10s) work best.</div>
+=======
+          <input id="file" type="file" accept="audio/*" aria-label="Audio file input" />
+          <div class="cta">Drop audio file here or click to choose</div>
+          <div class="hint">Most audio formats accepted (ffmpeg fallback). &lt;10s recommended.</div>
+>>>>>>> f6f89c0 (chore: initial commit)
         </div>
         <div class="actions">
           <button id="analyze" disabled>Analyze</button>
@@ -67,6 +77,8 @@
         resultBox.innerHTML = '' +
           `<div class="badge ${labelClass}">${data.label}</div>` +
           `Score: ${(data.score * 100).toFixed(1)}%\n` +
+          (data.sample_rate ? `Sample Rate: ${data.sample_rate} Hz | Channels: ${data.channels}\n` : '') +
+          (data.source_type ? `Source: ${data.source_type}\n` : '') +
           `\nFeatures:\n${humanizeFeatures(data.features)}`;
       }
 
@@ -83,8 +95,9 @@
 
       function acceptFile(f) {
         if (!f) return;
-        if (!f.name.toLowerCase().endsWith('.wav')) {
-          resultBox.textContent = 'Please select a .wav file.';
+        // Basic size guard (frontend) ~10MB
+        if (f.size > 10 * 1024 * 1024) {
+          resultBox.textContent = 'File too large (>10MB).';
           setStatus('Invalid','danger');
           return;
         }
@@ -114,6 +127,25 @@
         setStatus('Processing','warn');
         try {
           const res = await fetch(backendUrl, { method: 'POST', body: form });
+          if (!res.ok) {
+            let errText = `HTTP ${res.status}`;
+            let rawBody = null;
+            const clone = res.clone();
+            try {
+              const ct = res.headers.get('content-type') || '';
+              if (ct.includes('application/json')) {
+                const err = await res.json();
+                rawBody = JSON.stringify(err);
+                if (err.detail) errText += ` - ${err.detail}`;
+              } else {
+                rawBody = await res.text();
+              }
+            } catch (e) {
+              rawBody = `<unreadable: ${e}>`;
+            }
+            console.error('[PredictError]', errText, 'body=', rawBody, 'headers=', [...clone.headers.entries()]);
+            throw new Error(errText);
+          }
           const data = await res.json();
           renderResult(data);
           setStatus('Done', data.label.includes('possible') ? 'warn' : 'ok');
