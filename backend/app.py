@@ -144,7 +144,6 @@ def load_audio_any(file_bytes: bytes, filename: str):
         return data, sr, ch, 'transcoded'
     except HTTPException as e:
         raise e
->>>>>>> f6f89c0 (chore: initial commit)
 
 
 def mono_signal(data: np.ndarray, n_channels: int) -> np.ndarray:
@@ -242,3 +241,18 @@ async def predict(file: UploadFile = File(...)):
 @app.get("/")
 async def root():
     return {"message": "Voice PD Detector backend running"}
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for monitoring and demo purposes"""
+    return {
+        "status": "healthy",
+        "service": "Voice PD Detector API",
+        "version": "1.0.0",
+        "timestamp": "2025-09-21",
+        "features": {
+            "audio_formats": ["WAV", "MP3", "MP4", "FLAC", "AAC", "OGG"],
+            "max_file_size_mb": MAX_FILE_BYTES // (1024 * 1024),
+            "ffmpeg_available": ffmpeg_available()
+        }
+    }

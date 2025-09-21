@@ -5,10 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Voice PD Detector</title>
     <link rel="stylesheet" href="styles.css" />
-<<<<<<< HEAD
-=======
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%23005588'/%3E%3Ctext x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3EVD%3C/text%3E%3C/svg%3E" />
->>>>>>> f6f89c0 (chore: initial commit)
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64'%3E%3Crect width='64' height='64' rx='12' ry='12' fill='%23005588'/%3E%3Ctext x='50%' y='54%' dominant-baseline='middle' text-anchor='middle' font-size='34' font-family='Arial' fill='white'%3EVD%3C/text%3E%3C/svg%3E" />
     <meta name="description" content="Minimal heuristic Parkinson's voice pattern demo" />
   </head>
   <body>
@@ -20,15 +17,9 @@
 
       <section class="panel grid" aria-label="Upload section">
         <div class="drop-zone" id="drop">
-<<<<<<< HEAD
-          <input id="file" type="file" accept="audio/wav" aria-label="WAV file input" />
-          <div class="cta">Drop WAV file here or click to choose</div>
-          <div class="hint">16-bit PCM mono/stereo recommended. Short samples (&lt;10s) work best.</div>
-=======
           <input id="file" type="file" accept="audio/*" aria-label="Audio file input" />
           <div class="cta">Drop audio file here or click to choose</div>
           <div class="hint">Most audio formats accepted (ffmpeg fallback). &lt;10s recommended.</div>
->>>>>>> f6f89c0 (chore: initial commit)
         </div>
         <div class="actions">
           <button id="analyze" disabled>Analyze</button>
@@ -64,28 +55,141 @@
       }
 
       function humanizeFeatures(f) {
-        const lines = [
-          `RMS: ${f.rms.toFixed(4)}`,
-          `Zero-Crossing Rate: ${f.zcr.toFixed(4)}`,
-          `Pitch Variance: ${f.pitch_var.toFixed(2)}`,
-        ];
-        return lines.join('\n');
+        return {
+          rms: { value: f.rms.toFixed(4), label: 'RMS Energy', description: 'Root Mean Square energy level' },
+          zcr: { value: f.zcr.toFixed(4), label: 'Zero-Crossing Rate', description: 'Voice stability indicator' },
+          pitch_var: { value: f.pitch_var.toFixed(2), label: 'Pitch Variance', description: 'Voice modulation variability' }
+        };
+      }
+
+      function getConfidenceLevel(score) {
+        if (score < 0.3) return 'low';
+        if (score < 0.7) return 'medium';
+        return 'high';
+      }
+
+      function getResultMessage(data) {
+        const score = data.score * 100;
+        const isPositive = data.label.includes('possible');
+        
+        if (isPositive) {
+          if (score > 75) {
+            return {
+              title: '⚠️ High Confidence Detection',
+              message: 'Strong indicators of Parkinson\'s-like voice patterns detected.',
+              recommendation: 'Consider consulting a healthcare professional for proper medical evaluation.'
+            };
+          } else {
+            return {
+              title: '⚡ Moderate Detection',
+              message: 'Some Parkinson\'s-like voice patterns detected.',
+              recommendation: 'Results are inconclusive. Consider additional testing if concerned.'
+            };
+          }
+        } else {
+          return {
+            title: '✅ No Strong Indicators',
+            message: 'Voice patterns appear typical.',
+            recommendation: 'No significant Parkinson\'s-like patterns detected in this sample.'
+          };
+        }
+      }
+
+      function createProgressBar(percentage) {
+        return `
+          <div class="progress-bar">
+            <div class="progress-fill" style="width: ${percentage}%"></div>
+          </div>
+        `;
       }
 
       function renderResult(data) {
+        const score = data.score * 100;
+        const confidenceLevel = getConfidenceLevel(data.score);
+        const result = getResultMessage(data);
+        const features = humanizeFeatures(data.features);
         const labelClass = data.label.includes('possible') ? (data.score > 0.75 ? 'danger' : 'warn') : 'ok';
-        resultBox.innerHTML = '' +
-          `<div class="badge ${labelClass}">${data.label}</div>` +
-          `Score: ${(data.score * 100).toFixed(1)}%\n` +
-          (data.sample_rate ? `Sample Rate: ${data.sample_rate} Hz | Channels: ${data.channels}\n` : '') +
-          (data.source_type ? `Source: ${data.source_type}\n` : '') +
-          `\nFeatures:\n${humanizeFeatures(data.features)}`;
+        
+        resultBox.innerHTML = `
+          <div class="result-card">
+            <div class="result-header">
+              <div class="badge ${labelClass}">${data.label.replace(/_/g, ' ').toUpperCase()}</div>
+              <span style="margin-left: auto; font-weight: bold; color: var(--text);">${score.toFixed(1)}%</span>
+            </div>
+            
+            <h3 style="margin: 0 0 1rem 0; color: var(--text);">${result.title}</h3>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">${result.message}</p>
+            
+            <div class="confidence-meter">
+              <div class="confidence-fill ${confidenceLevel}" style="width: ${score}%"></div>
+            </div>
+            <small style="color: var(--text-dim);">Confidence Level: ${confidenceLevel.toUpperCase()}</small>
+            
+            <div class="audio-info">
+              <div class="audio-info-item">
+                <span class="audio-info-value">${data.sample_rate} Hz</span>
+                <span class="audio-info-label">Sample Rate</span>
+              </div>
+              <div class="audio-info-item">
+                <span class="audio-info-value">${data.channels}</span>
+                <span class="audio-info-label">Channels</span>
+              </div>
+              <div class="audio-info-item">
+                <span class="audio-info-value">${data.source_type}</span>
+                <span class="audio-info-label">Source</span>
+              </div>
+            </div>
+            
+            <div class="features-grid">
+              ${Object.entries(features).map(([key, feature]) => `
+                <div class="feature-item">
+                  <span class="feature-value">${feature.value}</span>
+                  <span class="feature-label">${feature.label}</span>
+                  <small style="color: var(--text-dim); margin-top: 0.5rem; display: block;">${feature.description}</small>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(255,255,255,.03); border-radius: 8px; border-left: 3px solid var(--${confidenceLevel === 'high' ? 'danger' : confidenceLevel === 'medium' ? 'warn' : 'ok'});">
+              <strong style="color: var(--text);">Recommendation:</strong>
+              <p style="margin: 0.5rem 0 0 0; color: var(--text-dim);">${result.recommendation}</p>
+            </div>
+          </div>
+        `;
       }
 
       function resetAll() {
         currentFile = null;
         fileInput.value = '';
-        resultBox.textContent = 'Waiting for audio...';
+        
+        // Enhanced initial state
+        resultBox.innerHTML = `
+          <div class="result-card">
+            <div class="result-header">
+              <div class="badge">READY</div>
+            </div>
+            <h3 style="margin: 0 0 1rem 0; color: var(--text);">🎤 Ready for Voice Analysis</h3>
+            <p style="color: var(--text-dim); margin-bottom: 1rem;">
+              Upload or drag & drop an audio file to begin Parkinson's voice pattern analysis.
+            </p>
+            <div style="padding: 1rem; background: rgba(255,255,255,.03); border-radius: 8px; border-left: 3px solid var(--grad-start);">
+              <strong style="color: var(--text);">Supported formats:</strong>
+              <p style="margin: 0.5rem 0 0 0; color: var(--text-dim);">
+                Audio: MP3, WAV, FLAC, AAC, OGG<br>
+                Video: MP4, AVI, MOV (audio will be extracted)<br>
+                Maximum size: 10 MB
+              </p>
+            </div>
+            <div style="margin-top: 1rem; padding: 1rem; background: rgba(251,191,36,.1); border-radius: 8px; border-left: 3px solid var(--warn);">
+              <strong style="color: var(--warn);">⚠️ Important Disclaimer:</strong>
+              <p style="margin: 0.5rem 0 0 0; color: var(--text-dim);">
+                This is a demonstration tool using basic heuristics. Results are not medical diagnoses 
+                and should not replace professional medical consultation.
+              </p>
+            </div>
+          </div>
+        `;
+        
         analyzeBtn.disabled = true;
         resetBtn.disabled = true;
         setStatus('Idle');
@@ -95,14 +199,70 @@
 
       function acceptFile(f) {
         if (!f) return;
-        // Basic size guard (frontend) ~10MB
-        if (f.size > 10 * 1024 * 1024) {
-          resultBox.textContent = 'File too large (>10MB).';
+        
+        // Enhanced file validation
+        const maxSize = 10 * 1024 * 1024; // 10MB
+        const supportedTypes = ['audio/', 'video/'];
+        
+        if (f.size > maxSize) {
+          resultBox.innerHTML = `
+            <div class="result-card">
+              <div class="result-header">
+                <div class="badge danger">FILE TOO LARGE</div>
+              </div>
+              <p style="color: var(--text-dim);">File size: ${(f.size / 1024 / 1024).toFixed(1)} MB</p>
+              <p style="color: var(--danger);">Maximum allowed size is 10 MB. Please choose a smaller file.</p>
+            </div>
+          `;
           setStatus('Invalid','danger');
           return;
         }
+        
+        if (!supportedTypes.some(type => f.type.startsWith(type))) {
+          resultBox.innerHTML = `
+            <div class="result-card">
+              <div class="result-header">
+                <div class="badge warn">UNSUPPORTED FORMAT</div>
+              </div>
+              <p style="color: var(--text-dim);">File type: ${f.type || 'Unknown'}</p>
+              <p style="color: var(--warn);">Please upload an audio or video file (MP3, WAV, MP4, etc.)</p>
+            </div>
+          `;
+          setStatus('Invalid','warn');
+          return;
+        }
+        
         currentFile = f;
-        resultBox.textContent = `Selected: ${f.name} (${(f.size/1024).toFixed(1)} KB)`;
+        
+        // Enhanced file info display
+        const fileSize = f.size < 1024 ? `${f.size} B` : 
+                        f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(1)} KB` :
+                        `${(f.size / 1024 / 1024).toFixed(1)} MB`;
+        
+        resultBox.innerHTML = `
+          <div class="result-card">
+            <div class="result-header">
+              <div class="badge ok">FILE READY</div>
+            </div>
+            <h3 style="margin: 0 0 1rem 0; color: var(--text);">📁 ${f.name}</h3>
+            <div class="audio-info">
+              <div class="audio-info-item">
+                <span class="audio-info-value">${fileSize}</span>
+                <span class="audio-info-label">Size</span>
+              </div>
+              <div class="audio-info-item">
+                <span class="audio-info-value">${f.type || 'Unknown'}</span>
+                <span class="audio-info-label">Type</span>
+              </div>
+              <div class="audio-info-item">
+                <span class="audio-info-value">${new Date(f.lastModified).toLocaleDateString()}</span>
+                <span class="audio-info-label">Modified</span>
+              </div>
+            </div>
+            <p style="color: var(--text-dim); margin-top: 1rem;">✅ File validated and ready for analysis. Click "Analyze" to proceed.</p>
+          </div>
+        `;
+        
         analyzeBtn.disabled = false;
         resetBtn.disabled = false;
         setStatus('Ready','ok');
@@ -123,14 +283,38 @@
         if (!currentFile) return;
         const form = new FormData();
         form.append('file', currentFile);
-        resultBox.classList.add('loading');
+        
+        // Enhanced loading state
+        resultBox.innerHTML = `
+          <div class="result-card">
+            <div class="result-header">
+              <div class="badge warn">PROCESSING</div>
+              <div class="loading-spinner"></div>
+            </div>
+            <h3 style="margin: 0 0 1rem 0; color: var(--text);">🔬 Analyzing Audio...</h3>
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 100%"></div>
+            </div>
+            <p style="color: var(--text-dim); margin-top: 1rem;">
+              • Extracting audio features<br>
+              • Calculating voice patterns<br>
+              • Applying detection algorithms<br>
+              • Generating confidence scores
+            </p>
+          </div>
+        `;
+        
         setStatus('Processing','warn');
+        analyzeBtn.disabled = true;
+        
         try {
           const res = await fetch(backendUrl, { method: 'POST', body: form });
+          
           if (!res.ok) {
             let errText = `HTTP ${res.status}`;
             let rawBody = null;
             const clone = res.clone();
+            
             try {
               const ct = res.headers.get('content-type') || '';
               if (ct.includes('application/json')) {
@@ -143,17 +327,58 @@
             } catch (e) {
               rawBody = `<unreadable: ${e}>`;
             }
+            
             console.error('[PredictError]', errText, 'body=', rawBody, 'headers=', [...clone.headers.entries()]);
-            throw new Error(errText);
+            
+            // Enhanced error display
+            resultBox.innerHTML = `
+              <div class="result-card">
+                <div class="result-header">
+                  <div class="badge danger">ERROR</div>
+                </div>
+                <h3 style="margin: 0 0 1rem 0; color: var(--danger);">❌ Analysis Failed</h3>
+                <p style="color: var(--text-dim);">Error: ${errText}</p>
+                <div style="margin-top: 1rem; padding: 1rem; background: rgba(239,68,68,.1); border-radius: 8px; border-left: 3px solid var(--danger);">
+                  <strong style="color: var(--danger);">Troubleshooting:</strong>
+                  <ul style="margin: 0.5rem 0 0 1rem; color: var(--text-dim);">
+                    <li>Check if the backend server is running</li>
+                    <li>Verify the audio file format is supported</li>
+                    <li>Try a different audio file</li>
+                    <li>Check console for detailed error information</li>
+                  </ul>
+                </div>
+              </div>
+            `;
+            setStatus('Error','danger');
+            return;
           }
+          
           const data = await res.json();
           renderResult(data);
-          setStatus('Done', data.label.includes('possible') ? 'warn' : 'ok');
+          setStatus('Complete', data.label.includes('possible') ? 'warn' : 'ok');
+          
         } catch (err) {
-          resultBox.textContent = 'Error: ' + err;
+          resultBox.innerHTML = `
+            <div class="result-card">
+              <div class="result-header">
+                <div class="badge danger">NETWORK ERROR</div>
+              </div>
+              <h3 style="margin: 0 0 1rem 0; color: var(--danger);">🔌 Connection Failed</h3>
+              <p style="color: var(--text-dim);">Unable to connect to the analysis server.</p>
+              <div style="margin-top: 1rem; padding: 1rem; background: rgba(239,68,68,.1); border-radius: 8px; border-left: 3px solid var(--danger);">
+                <strong style="color: var(--danger);">Please check:</strong>
+                <ul style="margin: 0.5rem 0 0 1rem; color: var(--text-dim);">
+                  <li>Backend server is running on port 8000</li>
+                  <li>Your internet connection</li>
+                  <li>Firewall or antivirus blocking the connection</li>
+                </ul>
+                <p style="margin-top: 1rem; color: var(--text-dim);">Error details: ${err.message}</p>
+              </div>
+            </div>
+          `;
           setStatus('Error','danger');
         } finally {
-          resultBox.classList.remove('loading');
+          analyzeBtn.disabled = false;
         }
       });
 
